@@ -25,19 +25,35 @@ SML_PG60
 ```
 
 SML_PG60
+
 |
+
 |- COMP90051_ProjectGroup60_code.ipynb
+
 |
+
 |- data
+
    |
+   
    |- matraw
+   
    |  |
+   
    |  |- influenza_outbreak_dataset.mat
+   
    |
+   
    |- processed
+   
       |
+      
       |- flu_csv
+      
       |   |
+      
       |   |- flu_csv.zip
+      
       |
+      
       |- 
