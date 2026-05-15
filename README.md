@@ -20,7 +20,8 @@ SML_PG60
       |- flu_csv
       |   |
       |   |- flu_csv.zip
-      |
+      |   |
+      |   |- sg_flucsv.zip
       |- 
 ```
 **data**: contains all project data
