@@ -18,3 +18,6 @@ influenza_outbreak_data.mat converted into csv format by Songhao Guo. Zip file c
 - influenza_outbreak_long.csv
 - flu_keywords.csv
 - flu_locations.csv 
+
+### SONGHAO convert .mat to .csv
+Raw code to convert influenza_outbreak_dataset.mat to csv; added into group Colab notebook.
