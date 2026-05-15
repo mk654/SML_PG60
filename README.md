@@ -22,7 +22,8 @@ SML_PG60
       |   |- flu_csv.zip
       |   |
       |   |- sg_flucsv.zip
-      |- 
+      |
+      |- state_data.zip 
 ```
 **data**: contains all project data
    **matraw**: contains all raw .mat files, including:
