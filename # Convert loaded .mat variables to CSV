@@ -1,0 +1,104 @@
+# Convert loaded .mat variables to CSV
+import pandas as pd
+import numpy as np
+from pathlib import Path
+from scipy import sparse
+
+BASE_DIR = Path("/content/drive/MyDrive/COM90051_Code")
+
+csv_output_path = BASE_DIR / "influenza_outbreak_long.csv"
+keywords_output_path = BASE_DIR / "flu_keywords.csv"
+locations_output_path = BASE_DIR / "flu_locations.csv"
+
+
+def extract_matlab_string_array(arr):
+    values = []
+    for item in arr.flatten():
+        if isinstance(item, np.ndarray):
+            if item.size == 1:
+                values.append(str(item.item()).strip())
+            else:
+                values.append("".join(item.astype(str).flatten()).strip())
+        else:
+            values.append(str(item).strip())
+    return values
+
+
+def make_safe_unique_names(names):
+    safe_names = []
+    used = {}
+
+    for name in names:
+        clean = (
+            str(name)
+            .strip()
+            .replace(" ", "_")
+            .replace("-", "_")
+            .replace("/", "_")
+            .replace("(", "")
+            .replace(")", "")
+        )
+
+        if clean == "":
+            clean = "unnamed_feature"
+
+        if clean in used:
+            used[clean] += 1
+            clean = f"{clean}_{used[clean]}"
+        else:
+            used[clean] = 0
+
+        safe_names.append(clean)
+
+    return safe_names
+
+
+locations = extract_matlab_string_array(flu_locs)
+keywords = extract_matlab_string_array(flu_keywords)
+feature_names = make_safe_unique_names(keywords)
+
+all_parts = []
+
+for i, location in enumerate(locations):
+    for split_name, X_cell, y_cell in [
+        ("train", flu_X_tr, flu_Y_tr),
+        ("test", flu_X_te, flu_Y_te),
+    ]:
+        X = X_cell[0, i]
+
+        if sparse.issparse(X):
+            X = X.toarray()
+        else:
+            X = np.asarray(X)
+
+        # Keep only the 525 named keyword features
+        X = X[:, :len(feature_names)]
+
+        y = np.asarray(y_cell[0, i]).reshape(-1).astype(int)
+
+        df_part = pd.DataFrame(X, columns=feature_names)
+        df_part.insert(0, "location", location)
+        df_part.insert(1, "split", split_name)
+        df_part.insert(2, "time_index", np.arange(len(y)))
+        df_part["label"] = y
+
+        all_parts.append(df_part)
+
+df = pd.concat(all_parts, ignore_index=True)
+
+df.to_csv(csv_output_path, index=False)
+pd.DataFrame({"keyword": keywords}).to_csv(keywords_output_path, index=False)
+pd.DataFrame({"location": locations}).to_csv(locations_output_path, index=False)
+
+print("Saved main CSV to:", csv_output_path)
+print("Saved keywords CSV to:", keywords_output_path)
+print("Saved locations CSV to:", locations_output_path)
+
+print("\nData shape:", df.shape)
+print("\nSplit counts:")
+print(df["split"].value_counts())
+
+print("\nLabel distribution:")
+print(df["label"].value_counts())
+
+df.head()
