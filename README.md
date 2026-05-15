@@ -19,11 +19,13 @@ SML_PG60
       |
       |- flu_csv
       |   |
-      |   |- flu_csv.zip
+      |   |- ak_flucsv.zip
       |   |
       |   |- sg_flucsv.zip
       |
-      |- state_data.zip 
+      |- state_data.zip
+      |
+      |- ak_flucsv_combined.zip
 ```
 **data**: contains all project data
    **matraw**: contains all raw .mat files, including:
