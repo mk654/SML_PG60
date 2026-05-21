@@ -1,0 +1,112 @@
+c_df = pd.read_csv(repo_dir / "data/covid19_tweets.csv.xz")
+import re
+
+c_df["user_location"] = c_df["user_location"].fillna("").astype(str).str.strip().str.lower()
+# dictionaries 
+abbr_to_state = {
+    "al": "alabama","ak": "alaska", "az": "arizona", "ar": "arkansas", "ca": "california","co": "colorado", 
+    "ct": "connecticut", "de": "delaware", "fl": "florida", "ga": "georgia", "hi": "hawaii", "id": "idaho", 
+    "il": "illinois", "in": "indiana", "ia": "iowa", "ks": "kansas", "ky": "kentucky", "la": "louisiana", 
+    "me": "maine", "md": "maryland", "ma": "massachusetts", "mi": "michigan", "mn": "minnesota",  
+    "ms": "mississippi", "mo": "missouri", "mt": "montana", "ne": "nebraska", "nv": "nevada", 
+    "nh": "new hampshire", "nj": "new jersey", "nm": "new mexico", "ny": "new york", 
+    "nc": "north carolina", "nd": "north dakota", "oh": "ohio", "ok": "oklahoma", "or": "oregon", 
+    "pa": "pennsylvania", "ri": "rhode island", "sc": "south carolina", "sd": "south dakota", 
+    "tn": "tennessee", "tx": "texas", "ut": "utah", "vt": "vermont", "va": "virginia", 
+    "wa": "washington", "wv": "west virginia", "wi": "wisconsin", "wy": "wyoming", "dc": "district of columbia"
+}
+state_names = set(abbr_to_state.values())
+     
+usa_terms = {"usa", "us", "united states", "america", "u.s.", "u.s.a."}
+
+city_to_state = {
+    "new york": "new york", "nyc": "new york", "brooklyn": "new york", "manhattan": "new york",
+    "los angeles": "california", "san diego": "california", "san francisco": "california", "sacramento": "california", "long beach": "california",
+    "houston": "texas", "dallas": "texas", "austin": "texas",
+    "miami": "florida", "orlando": "florida",
+    "chicago": "illinois",
+    "atlanta": "georgia",
+    "boston": "massachusetts",
+    "las vegas": "nevada",
+    "seattle": "washington",
+    "new orleans": "louisiana",
+    "st louis": "missouri", "saint louis": "missouri",
+    "washington dc": "district of columbia"
+}
+
+# specific non-us locations/terms to exclude
+junk = ["everywhere", "worldwide", "23 countries", "opt-out", "catch me", "the beach", 
+        "in the vineyard", "available now", "working"]
+
+foreign = ["canada", "uk", "australia", "india", "germany", "france", "italy", "spain", "brazil", 
+           "argentina", "china", "japan", "south korea", "paris", "london", "vienna", "delhi", "rio",
+           "beijing", "nairobi", "joburg"]
+
+bad_ab = {"in", "or", "me", "hi"}
+
+def is_ambig(loc): # multiple locations or terms foreign to usa
+    separators = [",", ";", "|", "/", " and ", " & "]
+    foreign_count = 0
+    for term in foreign:
+        if term in loc:
+            foreign_count += 1
+    if foreign_count >= 1 and any (sep in loc for sep in separators):
+        return True
+    return False
+
+def is_junk(loc):
+    for term in junk:
+        if term in loc:
+            return True
+    return False
+
+#filter
+def get_state(loc):
+    loc = loc.lower().strip()
+
+    if loc == "":
+        return None
+    
+    if is_junk(loc):
+        return None
+    
+    if is_ambig(loc):
+        return None
+    
+    for state in state_names:
+        if state in loc:
+            return state
+        
+    tokens = re.findall(r"\b[a-z]{2}\b", loc)
+    for token in tokens:
+        if token in abbr_to_state and token not in bad_ab:
+            return abbr_to_state[token]
+    
+    for city in city_to_state:
+        if city in loc:
+            return city_to_state[city]
+    return None
+
+# confidence levels (for later analysis.. noise filtering, weighting, etc.)
+def loc_conf(loc):
+    loc = loc.lower().strip()
+    for state in state_names:
+        if state in loc:
+            return "high"
+    tokens = re.findall(r"\b[a-z]{2}\b", loc)
+    for token in tokens:
+        if token in abbr_to_state and token not in bad_ab:
+            return "high"
+    for city in city_to_state:
+        if city in loc:
+            return "medium"
+    for term in usa_terms:
+        if term in loc:
+            return "low"
+    return "none"
+
+c_df["state"] = c_df["user_location"].apply(get_state)
+c_df["state_confidence"] = c_df["user_location"].apply(loc_conf)
+state_cdf = c_df[c_df["state"].notna()].copy()
+print(state_cdf[["user_location", "state", "state_confidence"]].head(100))
+print(len(state_cdf), "rows with identified US state locations")
